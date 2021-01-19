@@ -16,6 +16,7 @@ np.random.seed(2)
 
 if not os.path.exists("data"):
     os.makedirs("data")
+# -------------------------------------------------------------------
 
 
 def kuramotos_f():
@@ -27,7 +28,39 @@ def kuramotos_f():
         coupling_sum = sum(sin(y(j)-y(i))
                            for j in range(n)
                            if A[i, j])
-        yield (-y(i+n) + omega[i] + coeff * coupling_sum) * inv_m
+        yield (-y(i+n) + omega[i] + g * coupling_sum) * inv_m
+# -------------------------------------------------------------------
+
+
+def make_compiled_file():
+
+    I = jitcode(kuramotos_f, n=2*n, control_pars=[g])
+    I.generate_f_C()
+    I.compile_C()
+    I.save_compiled(overwrite=True, destination="data/jitced.so")
+# -------------------------------------------------------------------
+
+
+def simulate(simulation_time, coupling, step=1):
+
+    I = jitcode(n=2*n, module_location="data/jitced.so")
+    I.set_parameters(coupling)
+    I.set_integrator("dopri5")
+    initial_state = uniform(-np.pi, np.pi, 2*n)
+    I.set_initial_value(initial_state, 0.0)
+    times = np.arange(0, int(simulation_time), step)
+    n_steps = len(times)
+
+    phases = np.empty((len(times), n))
+    order = np.zeros(len(times))
+
+    for i in range(n_steps):
+        phases_i = (I.integrate(times[i]) % (2*np.pi))[:n]
+        phases[i, :] = phases_i
+        order[i] = order_parameter(phases_i)
+
+    return times, phases
+# -------------------------------------------------------------------
 
 
 def order_parameter(phases):
@@ -36,23 +69,24 @@ def order_parameter(phases):
     n = phases.shape
     r = abs(sum(np.exp(1j * phases))) / n
     return r
+# -------------------------------------------------------------------
 
 
 def plot_order(t, r, ax=None, **kwargs):
-    
+
     savefig = False
     if ax is None:
         fig, ax = plt.subplots(1, figsize=(6, 4))
         savefig = True
-    
+
     ax.plot(t, r, **kwargs)
-    
     # ax.set_xlabel("times")
     ax.set_ylabel("r(t)")
 
     if savefig:
         plt.savefig("data/r.png", dpi=150)
         plt.close()
+# -------------------------------------------------------------------
 
 
 def plot_phases(phases, extent, ax=None):
@@ -76,16 +110,19 @@ def plot_phases(phases, extent, ax=None):
     if savefig:
         plt.savefig("data/kuramoto.png", dpi=150)
         plt.close()
+# -------------------------------------------------------------------
 
 
-n = 100
-c = 8
-k_ave = 9
-coeff = c/k_ave
-m = 1.0
-inv_m = 1.0 / m
+
 
 if __name__ == "__main__":
+
+    n = 10
+    c = 0.8
+    k_ave = 9
+    g = c/k_ave
+    m = 1.0
+    inv_m = 1.0 / m
 
     Graph = nx.complete_graph(n)
     A = nx.to_numpy_array(Graph, dtype=int)
