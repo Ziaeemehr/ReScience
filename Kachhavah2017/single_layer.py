@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pylab as plt
 import networkx as nx
-from symengine import sin
+from symengine import sin, Symbol
 from jitcode import jitcode, y
 from numpy.random import choice
 from numpy.random import uniform
@@ -41,25 +41,28 @@ def make_compiled_file():
 # -------------------------------------------------------------------
 
 
-def simulate(simulation_time, coupling, step=1):
+def simulate(simulation_time, transition_time, coupling, step=1):
 
     I = jitcode(n=2*n, module_location="data/jitced.so")
     I.set_parameters(coupling)
     I.set_integrator("dopri5")
     initial_state = uniform(-np.pi, np.pi, 2*n)
     I.set_initial_value(initial_state, 0.0)
+
     times = np.arange(0, int(simulation_time), step)
-    n_steps = len(times)
+    trans_index = int(transition_time/step)
+    n_steps = len(times) - trans_index
 
-    phases = np.empty((len(times), n))
-    order = np.zeros(len(times))
+    phases = np.empty((n_steps, n))
+    order = np.empty(n_steps)
 
-    for i in range(n_steps):
+    for i in range(len(times)):
         phases_i = (I.integrate(times[i]) % (2*np.pi))[:n]
-        phases[i, :] = phases_i
-        order[i] = order_parameter(phases_i)
+        if i >= trans_index:
+            phases[i - trans_index, :] = phases_i
+            order[i-trans_index] = order_parameter(phases_i)
 
-    return times, phases
+    return times[trans_index:], phases, order
 # -------------------------------------------------------------------
 
 
@@ -82,6 +85,7 @@ def plot_order(t, r, ax=None, **kwargs):
     ax.plot(t, r, **kwargs)
     # ax.set_xlabel("times")
     ax.set_ylabel("r(t)")
+    ax.set_ylim(0, 1.1)
 
     if savefig:
         plt.savefig("data/r.png", dpi=150)
@@ -113,16 +117,17 @@ def plot_phases(phases, extent, ax=None):
 # -------------------------------------------------------------------
 
 
-
-
 if __name__ == "__main__":
 
     n = 10
     c = 0.8
     k_ave = 9
-    g = c/k_ave
+    coupling = c/k_ave
     m = 1.0
     inv_m = 1.0 / m
+    simulation_time = 100
+    transition_time = 20
+    g = Symbol("g")
 
     Graph = nx.complete_graph(n)
     A = nx.to_numpy_array(Graph, dtype=int)
@@ -130,25 +135,14 @@ if __name__ == "__main__":
     omega = uniform(-1, 1, n)
     omega.sort()
 
-    times = np.arange(0, 1001, 0.5)
-
-    I = jitcode(kuramotos_f, n=2*n)
-    I.set_integrator("dopri5", atol=1e-6, rtol=1e-5)
-    I.set_initial_value(initial_state, time=0.0)
-
-    phases = np.empty((len(times), n))
-    order = np.zeros(len(times))
-
-    print("running simulation ...")
-    for i in range(len(times)):
-        phases_i = (I.integrate(times[i]) % (2*np.pi))[:n]
-        phases[i, :] = phases_i
-        order[i] = order_parameter(phases_i)
+    make_compiled_file()
+    times, phases, order = simulate(simulation_time,
+                                    transition_time,
+                                    coupling)
 
     fig, ax = plt.subplots(2, sharex=True)
     plot_order(times, order, ax=ax[0])
     plot_phases(phases, [0, times[-1], 0, n], ax[1])
-
     ax[0].set_xlim(0, times[-1])
 
     plt.savefig("data/fig.png", dpi=150)
