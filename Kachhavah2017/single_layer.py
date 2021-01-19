@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pylab as plt
 import networkx as nx
+from copy import copy
 from symengine import sin, Symbol
 from jitcode import jitcode, y
 from numpy.random import choice
@@ -13,6 +14,7 @@ from numpy.random import uniform
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 np.random.seed(2)
+os.environ["CC"] = "clang"
 
 if not os.path.exists("data"):
     os.makedirs("data")
@@ -35,18 +37,23 @@ def kuramotos_f():
 def make_compiled_file():
 
     I = jitcode(kuramotos_f, n=2*n, control_pars=[g])
-    I.generate_f_C()
-    I.compile_C()
+    I.generate_f_C(chunk_size=100)
+    I.compile_C(omp=OMP)
     I.save_compiled(overwrite=True, destination="data/jitced.so")
 # -------------------------------------------------------------------
 
 
-def simulate(simulation_time, transition_time, coupling, step=1):
+def simulate(simulation_time,
+             transition_time,
+             coupling,
+             initial_state=None,
+             step=1, ):
 
     I = jitcode(n=2*n, module_location="data/jitced.so")
     I.set_parameters(coupling)
     I.set_integrator("dopri5")
-    initial_state = uniform(-np.pi, np.pi, 2*n)
+    if initial_state is None:
+        initial_state = uniform(-np.pi, np.pi, 2*n)
     I.set_initial_value(initial_state, 0.0)
 
     times = np.arange(0, int(simulation_time), step)
@@ -57,12 +64,12 @@ def simulate(simulation_time, transition_time, coupling, step=1):
     order = np.empty(n_steps)
 
     for i in range(len(times)):
-        phases_i = (I.integrate(times[i]) % (2*np.pi))[:n]
+        phases_i = (I.integrate(times[i]) % (2*np.pi))
         if i >= trans_index:
-            phases[i - trans_index, :] = phases_i
-            order[i-trans_index] = order_parameter(phases_i)
+            phases[i - trans_index, :] = phases_i[:n]
+            order[i-trans_index] = order_parameter(phases_i[:n])
 
-    return times[trans_index:], phases, order
+    return times[trans_index:], phases, order, phases_i
 # -------------------------------------------------------------------
 
 
@@ -117,18 +124,22 @@ def plot_phases(phases, extent, ax=None):
 # -------------------------------------------------------------------
 
 
+def plot_H_loop(filename, **kwargs):
+    fig, ax = plt.subplots(1)
+
+    data = np.load(filename)
+
+    ax.plot(data['g'], data['Rf'], lw=1, label="F", color='r', **kwargs)
+    ax.plot(data['g'][::-1], data['Rb'], lw=1, label="B", color='b', **kwargs)
+    ax.set_xlabel("coupling")
+    ax.set_ylabel("R")
+    ax.legend()
+    plt.savefig("data/H_loop.png", dpi=150)
+
+
 if __name__ == "__main__":
 
-    n = 10
-    m = 1.0
-    k_ave = 9
-    inv_m = 1.0 / m
-    g = Symbol("g")
-    Graph = nx.complete_graph(n)
-    A = nx.to_numpy_array(Graph, dtype=int)
-    omega = uniform(-1, 1, n)
-    omega.sort()
-    
+
     def figure_r():
         c = 2
         coupling = c / k_ave
@@ -138,16 +149,15 @@ if __name__ == "__main__":
         if not os.path.exists("data/jitced.so"):
             make_compiled_file()
 
-        times, phases, order = simulate(simulation_time,
-                                        transition_time,
-                                        coupling)
+        times, phases, order, _ = simulate(simulation_time,
+                                           transition_time,
+                                           coupling)
 
         fig, ax = plt.subplots(2, sharex=True)
         plot_order(times, order, ax=ax[0])
         plot_phases(phases, [0, times[-1], 0, n], ax[1])
         ax[0].set_xlim(0, times[-1])
         plt.savefig("data/fig1.png", dpi=150)
-
 
     def figure_R():
         c = 2
@@ -162,9 +172,9 @@ if __name__ == "__main__":
 
         R = np.empty(len(couplings))
         for i in range(len(couplings)):
-            _, _, order = simulate(simulation_time,
-                                            transition_time,
-                                            couplings[i])
+            _, _, order, _ = simulate(simulation_time,
+                                      transition_time,
+                                      couplings[i])
             R[i] = np.average(order)
 
         ax.plot(couplings, R, lw=1, label="R")
@@ -172,7 +182,57 @@ if __name__ == "__main__":
         ax.set_ylabel("R")
         plt.savefig("data/R.png", dpi=150)
 
-    
+    # ---------------------------------------------------------------
+    def H_loop():
 
-    figure_r()
-    figure_R()
+        couplings = np.linspace(0.5, 2, 26) / k_ave
+        simulation_time = 500
+        transition_time = 100
+
+        if not os.path.exists("data/jitced.so"):
+            make_compiled_file()
+
+        initial_state = uniform(-np.pi, np.pi, 2*n)
+
+        directionList = ["forward", "backward"]
+        R = {}
+
+        for dir in directionList:
+            if dir == "forward":
+                coupls = copy(couplings)
+            else:
+                coupls = copy(couplings[::-1])
+            R0 = np.empty(len(couplings))
+            for i in range(len(couplings)):
+                print("{:s}, {:10.6f}".format(dir, coupls[i]*k_ave))
+                _, _, order, phases_last = simulate(simulation_time,
+                                                    transition_time,
+                                                    coupls[i],
+                                                    initial_state)
+                initial_state = copy(phases_last)
+
+                R0[i] = np.average(order)
+            R[dir] = R0
+
+        np.savez("data/data",
+                 Rf=R["forward"],
+                 Rb=R['backward'],
+                 g=couplings*k_ave)
+        plot_H_loop("data/data.npz")
+
+    n = 100
+    k_ave = 12
+    m = 1.0
+    OMP = True
+    inv_m = 1.0 / m
+    g = Symbol("g")
+    Graph = nx.gnp_random_graph(n, p=0.12, seed=1)
+    A = nx.to_numpy_array(Graph, dtype=int)
+    omega = uniform(-1, 1, n)
+    omega.sort()
+
+    # figure_r()
+    # figure_R()
+    # H_loop()
+
+    plot_H_loop("data/data.npz", marker="o")
