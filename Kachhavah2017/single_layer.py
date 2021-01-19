@@ -120,29 +120,59 @@ def plot_phases(phases, extent, ax=None):
 if __name__ == "__main__":
 
     n = 10
-    c = 0.8
-    k_ave = 9
-    coupling = c/k_ave
     m = 1.0
+    k_ave = 9
     inv_m = 1.0 / m
-    simulation_time = 100
-    transition_time = 20
     g = Symbol("g")
-
     Graph = nx.complete_graph(n)
     A = nx.to_numpy_array(Graph, dtype=int)
-    initial_state = uniform(0, 2*np.pi, 2 * n)
     omega = uniform(-1, 1, n)
     omega.sort()
+    
+    def figure_r():
+        c = 2
+        coupling = c / k_ave
+        simulation_time = 100
+        transition_time = 0
 
-    make_compiled_file()
-    times, phases, order = simulate(simulation_time,
-                                    transition_time,
-                                    coupling)
+        if not os.path.exists("data/jitced.so"):
+            make_compiled_file()
 
-    fig, ax = plt.subplots(2, sharex=True)
-    plot_order(times, order, ax=ax[0])
-    plot_phases(phases, [0, times[-1], 0, n], ax[1])
-    ax[0].set_xlim(0, times[-1])
+        times, phases, order = simulate(simulation_time,
+                                        transition_time,
+                                        coupling)
 
-    plt.savefig("data/fig.png", dpi=150)
+        fig, ax = plt.subplots(2, sharex=True)
+        plot_order(times, order, ax=ax[0])
+        plot_phases(phases, [0, times[-1], 0, n], ax[1])
+        ax[0].set_xlim(0, times[-1])
+        plt.savefig("data/fig1.png", dpi=150)
+
+
+    def figure_R():
+        c = 2
+        couplings = np.linspace(0, c, 20) / k_ave
+        simulation_time = 100
+        transition_time = 20
+
+        if not os.path.exists("data/jitced.so"):
+            make_compiled_file()
+
+        fig, ax = plt.subplots(1)
+
+        R = np.empty(len(couplings))
+        for i in range(len(couplings)):
+            _, _, order = simulate(simulation_time,
+                                            transition_time,
+                                            couplings[i])
+            R[i] = np.average(order)
+
+        ax.plot(couplings, R, lw=1, label="R")
+        ax.set_xlabel("coupling")
+        ax.set_ylabel("R")
+        plt.savefig("data/R.png", dpi=150)
+
+    
+
+    figure_r()
+    figure_R()
