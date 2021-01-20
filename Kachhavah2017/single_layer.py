@@ -75,9 +75,9 @@ def simulate(simulation_time,
     order = np.empty(n_steps)
 
     for i in range(len(times)):
-        phases_i = (I.integrate(times[i]) % (2*np.pi))
+        phases_i = I.integrate(times[i])
         if i >= trans_index:
-            phases[i - trans_index, :] = phases_i[:n]
+            phases[i - trans_index, :] = phases_i[:n] % (2*np.pi)
             order[i-trans_index] = order_parameter(phases_i[:n])
 
     return times[trans_index:], phases, order, phases_i

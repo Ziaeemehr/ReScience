@@ -29,36 +29,37 @@ def X(i, q): return y(q * 2 * n + i)
 def Y(i, q): return y(n + q * 2 * n + i)
 
 
-def kuramotos_f_multilayer():
+def kuramotos_f_bilayer():
 
+    qs = [0, 1]
     for q in [0, 1]:
         for i in range(n):
             yield Y(i, q)
 
         for i in range(n):
             coupling_sum = sum(sin(X(j, q) - X(i, q))
-                               for j in range(n)
-                               if A[i, j])
-            yield (-Y(i, q) + omega[i] + g * coupling_sum) * inv_m
+                               for j in range(n) if A[q][i, j])
+            yield (-Y(i, q) + omega[i, q] + g_intra * coupling_sum +
+                   g_inter * sin(X(i, q) - X(i, int(not q)))) * inv_m
 # -------------------------------------------------------------------
 
 
-def kuramotos_f():
+# def kuramotos_f():
 
-    for i in range(n):
-        yield y(i+n)
+#     for i in range(n):
+#         yield y(i+n)
 
-    for i in range(n):
-        coupling_sum = sum(sin(y(j)-y(i))
-                           for j in range(n)
-                           if A[i, j])
-        yield (-y(i+n) + omega[i] + g * coupling_sum) * inv_m
-# -------------------------------------------------------------------
+#     for i in range(n):
+#         coupling_sum = sum(sin(y(j)-y(i))
+#                            for j in range(n)
+#                            if A[i, j])
+#         yield (-y(i+n) + omega[i] + g * coupling_sum) * inv_m
+# # -------------------------------------------------------------------
 
 
 def make_compiled_file():
 
-    I = jitcode(kuramotos_f, n=2*n, control_pars=[g])
+    I = jitcode(kuramotos_f_bilayer, n=n4, control_pars=[g_inter, g_intra])
     I.generate_f_C(chunk_size=100)
     I.compile_C(omp=OMP)
     I.save_compiled(overwrite=True, destination="data/jitced.so")
@@ -67,12 +68,13 @@ def make_compiled_file():
 
 def simulate(simulation_time,
              transition_time,
-             coupling,
+             coupling_inter,
+             coupling_intra,
              initial_state=None,
              step=1, ):
 
-    I = jitcode(n=2*n, module_location="data/jitced.so")
-    I.set_parameters(coupling)
+    I = jitcode(n=n4, module_location="data/jitced.so")
+    I.set_parameters(coupling_inter, coupling_intra)
     I.set_integrator("dopri5")
     if initial_state is None:
         initial_state = uniform(-np.pi, np.pi, 2*n)
@@ -140,14 +142,11 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     def H_loop():
 
-        couplings = np.linspace(0.5, 2, 26) / k_ave
-        simulation_time = 500
-        transition_time = 100
-
+ 
         if not os.path.exists("data/jitced.so"):
             make_compiled_file()
 
-        initial_state = uniform(-np.pi, np.pi, 2*n)
+        initial_state = uniform(-np.pi, np.pi, n4)
 
         directionList = ["forward", "backward"]
         R = {}
@@ -175,16 +174,34 @@ if __name__ == "__main__":
                  g=couplings*k_ave)
         plot_H_loop("data/data.npz")
 
-    n = 100
-    k_ave = 12
-    m = 1.0
-    OMP = True
-    inv_m = 1.0 / m
-    g = Symbol("g")
-    Graph = nx.gnp_random_graph(n, p=0.12, seed=1)
-    A = nx.to_numpy_array(Graph, dtype=int)
-    omega = uniform(-1, 1, n)
-    omega.sort()
 
-    # H_loop()
+
+    n = 10
+    n4 = 4 * n
+    m = 1.0
+    OMP = False
+    inv_m = 1.0 / m
+    g_inter = Symbol("g_inter")
+    g_intra = Symbol("g_intra")
+    A = []
+    for q in [0, 1]:
+        Graph = nx.gnp_random_graph(n, p=1, seed=1)
+        _A = nx.to_numpy_array(Graph, dtype=int)
+        A.append(_A)
+
+    omega = uniform(-1, 1, size=(n, 2))
+    omega.sort(axis=0)
+
+    Dx = 1.0
+    coupling = 1.0
+    ave_degree0 = 9
+    ave_degree1 = 9
+    simulation_time = 500
+    transition_time = 100
+
+
+    g_intra_ = [coupling/(ave_degree0 + Dx), coupling/(ave_degree1 + Dx)]
+    g_inter_ = [Dx/(ave_degree0 + Dx), Dx/(ave_degree1 + Dx)]
+
+    H_loop()
     # plot_H_loop("data/data.npz", marker="o")
