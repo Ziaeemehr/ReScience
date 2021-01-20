@@ -20,6 +20,28 @@ if not os.path.exists("data"):
     os.makedirs("data")
 # -------------------------------------------------------------------
 
+# q for number of layers, i for index of oscillators in each layer
+
+
+def X(i, q): return y(q * 2 * n + i)
+
+
+def Y(i, q): return y(n + q * 2 * n + i)
+
+
+def kuramotos_f_multilayer():
+
+    for q in [0, 1]:
+        for i in range(n):
+            yield Y(i, q)
+
+        for i in range(n):
+            coupling_sum = sum(sin(X(j, q) - X(i, q))
+                               for j in range(n)
+                               if A[i, j])
+            yield (-Y(i, q) + omega[i] + g * coupling_sum) * inv_m
+# -------------------------------------------------------------------
+
 
 def kuramotos_f():
 
