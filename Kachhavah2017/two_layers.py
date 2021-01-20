@@ -36,17 +36,6 @@ def kuramotos_f():
 
 def make_compiled_file():
 
-    # dxdt = list([0.]*2*n)
-    # for i in range(n):
-    #     dxdt[i] = y(i+n)
-
-    # for i in range(n):
-    #     coupling_sum = sum(sin(y(j)-y(i))
-    #                        for j in range(n)
-    #                        if A[i, j])
-    #     dxdt[i+n] = (-y(i+n) + omega[i] + g * coupling_sum) * inv_m
-
-    # I = jitcode(dxdt, n=2*n, control_pars=[g])
     I = jitcode(kuramotos_f, n=2*n, control_pars=[g])
     I.generate_f_C(chunk_size=100)
     I.compile_C(omp=OMP)
@@ -111,30 +100,6 @@ def plot_order(t, r, ax=None, **kwargs):
 # -------------------------------------------------------------------
 
 
-def plot_phases(phases, extent, ax=None):
-
-    savefig = False
-    if ax is None:
-        fig, ax = plt.subplots(1, figsize=(6, 4))
-        savefig = True
-    im = ax.imshow(phases.T,
-                   origin="lower",
-                   extent=extent,
-                   aspect="auto",
-                   cmap="afmhot")
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    cbar = plt.colorbar(im, cax=cax)
-
-    ax.set_xlabel("times")
-    ax.set_ylabel("node index")
-
-    if savefig:
-        plt.savefig("data/kuramoto.png", dpi=150)
-        plt.close()
-# -------------------------------------------------------------------
-
-
 def plot_H_loop(filename, **kwargs):
     fig, ax = plt.subplots(1)
 
@@ -150,92 +115,8 @@ def plot_H_loop(filename, **kwargs):
 
 if __name__ == "__main__":
 
-    def figure_r():
-
-        global n, k_ave, inv_m, Graph, A, omega, OMP
-        n = 10
-        k_ave = 9
-        inv_m = 1.0
-        OMP = False
-
-        c = 0.8
-        coupling = c / k_ave
-        simulation_time = 1000
-        transition_time = 0
-
-        Graph = nx.gnp_random_graph(n, p=1, seed=1)
-        A = nx.to_numpy_array(Graph, dtype=int)
-        omega = uniform(-1, 1, n)
-        omega.sort()
-
-        if not os.path.exists("data/jitced.so"):
-            make_compiled_file()
-
-        times, phases, order, _ = simulate(simulation_time,
-                                           transition_time,
-                                           coupling)
-
-        fig, ax = plt.subplots(2, sharex=True)
-        plot_order(times, order, ax=ax[0])
-        plot_phases(phases, [0, times[-1], 0, n], ax[1])
-        ax[0].set_xlim(0, times[-1])
-        plt.savefig("data/fig1.png", dpi=150)
-        
-        print(np.average(order))
-
-    def figure_R():
-
-        global n, k_ave, inv_m, Graph, A, omega, OMP
-
-        n = 10
-        k_ave = 9
-        inv_m = 1.0
-        OMP = False
-
-        c = 0.8
-        
-        Graph = nx.gnp_random_graph(n, p=1, seed=1)
-        A = nx.to_numpy_array(Graph, dtype=int)
-        omega = uniform(-1, 1, n)
-        omega.sort()
-
-        c = 2
-        couplings = np.linspace(0, c, 20) / k_ave
-        simulation_time = 100
-        transition_time = 20
-
-        if not os.path.exists("data/jitced.so"):
-            make_compiled_file()
-
-        ـ, ax = plt.subplots(1)
-
-        R = np.empty(len(couplings))
-        for i in range(len(couplings)):
-            _, _, order, _ = simulate(simulation_time,
-                                      transition_time,
-                                      couplings[i])
-            R[i] = np.average(order)
-
-        ax.plot(couplings, R, lw=1, label="R")
-        ax.set_xlabel("coupling")
-        ax.set_ylabel("R")
-        plt.savefig("data/R.png", dpi=150)
-
     # ---------------------------------------------------------------
     def H_loop():
-
-        global n, k_ave, inv_m, Graph, A, omega, OMP
-
-        OMP = True
-        n = 100
-        m = 1.0
-        k_ave = 12
-        inv_m = 1.0 / m
-
-        Graph = nx.gnp_random_graph(n, p=0.12, seed=1)
-        A = nx.to_numpy_array(Graph, dtype=int)
-        omega = uniform(-1, 1, n)
-        omega.sort()
 
         couplings = np.linspace(0.5, 2, 26) / k_ave
         simulation_time = 500
@@ -270,14 +151,18 @@ if __name__ == "__main__":
                  Rf=R["forward"],
                  Rb=R['backward'],
                  g=couplings*k_ave)
-        plot_H_loop("data/data.npz", marker="o")
+        plot_H_loop("data/data.npz")
 
-    global n, k_ave, inv_m, Graph, A, omega, OMP
-
+    n = 100
+    k_ave = 12
+    m = 1.0
+    OMP = True
+    inv_m = 1.0 / m
     g = Symbol("g")
+    Graph = nx.gnp_random_graph(n, p=0.12, seed=1)
+    A = nx.to_numpy_array(Graph, dtype=int)
+    omega = uniform(-1, 1, n)
+    omega.sort()
 
-    # figure_r()
-    # figure_R()
-    H_loop()
-
+    # H_loop()
     # plot_H_loop("data/data.npz", marker="o")
