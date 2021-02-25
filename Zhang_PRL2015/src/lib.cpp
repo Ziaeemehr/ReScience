@@ -4,8 +4,8 @@ dim1 ODE::kuramoto_model(const dim1 &x)
 {
     double sumj = 0.0;
     dim1 dxdt(N);
-#pragma omp parallel for reduction(+ \
-                                   : sumj)
+// #pragma omp parallel for reduction(+ \
+//                                    : sumj)
     for (int i = 0; i < N; i++)
     {
         sumj = 0.0;
@@ -61,13 +61,13 @@ void ODE::euler_integrator(dim1 &y)
         y[i] += f[i] * dt;
     }
 }
-
+//---------------------------------------------------------------------------//
 double order_parameter(const std::vector<double> &x)
 {
 
     int n = x.size();
     assert(n > 1);
-    
+
     std::complex<double> z(0.0, 0.0);
 
     for (size_t i = 0; i < n; i++)
@@ -77,10 +77,10 @@ double order_parameter(const std::vector<double> &x)
     }
     z /= (double)n;
     double r = std::abs(z);
-    
+
     return r;
 }
-
+//---------------------------------------------------------------------------//
 double order_parameter(const std::vector<double> &x,
                        const dim1I indices)
 {
@@ -150,7 +150,7 @@ bool fileExists(const std::string &filename)
     return false;
 }
 /*------------------------------------------------------------*/
-std::vector<std::vector<int>> read_matrix(std::string filename, int Node)
+vector<vector<int>> read_matrix(string filename, int Node)
 {
     /*get filename and number of row to read a square matrix
     intput:
@@ -166,7 +166,7 @@ std::vector<std::vector<int>> read_matrix(std::string filename, int Node)
     /*to check if input file exists*/
     if (fileExists(filename))
     {
-        std::vector<std::vector<int>> Cij(Node, std::vector<int>(Node));
+        vector<vector<int>> Cij(Node, vector<int>(Node));
 
         for (int i = 0; i < Node; i++)
         {
@@ -186,7 +186,7 @@ std::vector<std::vector<int>> read_matrix(std::string filename, int Node)
 }
 /*------------------------------------------------------------*/
 void write_matrix_to_file(const vector<vector<int>> &A,
-                          const std::string file_name)
+                          const string file_name)
 {
     int row = A.size();
     int col = A[0].size();

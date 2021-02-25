@@ -5,13 +5,13 @@ CXXFLAGS = -std=c++11 -O2 -lm  -lgsl -lgslcblas -fopenmp
 
 
 prog: main.o lib.o
-	$(CXX)  -o $@  $^ $(CXXFLAGS)
+	$(CXX)  -o $@  $^ $(CXXFLAGS) -I/usr/include/eigen3
 
 main.o : main.cpp lib.hpp
-	$(CXX) -c main.cpp  $(CXXFLAGS)
+	$(CXX) -c main.cpp  $(CXXFLAGS) -I/usr/include/eigen3
 
 lib.o: lib.cpp lib.hpp
-	$(CXX) -c lib.cpp $(CXXFLAGS)
+	$(CXX) -c lib.cpp $(CXXFLAGS) 
 
 
 .PHONEY: clean

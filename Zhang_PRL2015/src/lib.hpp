@@ -79,8 +79,8 @@ public:
 
     void set_params(int N,
                     double dt,
+                    double coupling,
                     dim1 omega,
-                    dim1 coupling,
                     dim2I adj_mat,
                     int num_threads);
 
@@ -88,15 +88,17 @@ public:
     void euler_integrator(dim1 &);
     dim1 kuramoto_model(const dim1 &x);
     void runge_kutta4_integrator(dim1 &y);
-
-    void write_matrix_to_file(const vector<vector<int>> &A,
-                              const std::string file_name);
-    void write_matrix_to_file(const dim2f &A,
-                              const std::string file_name);
-    void write_vector_to_file(const vector<double> &v,
-                              const std::string file_name);
-    vector<vector<int>> read_matrix(const string filename, const int N);
 };
+
+double get_wall_time();
+double get_cpu_time();
+void display_timing(double wtime, double cptime);
+void write_matrix_to_file(const dim2I &A, const std::string file_name);
+void write_matrix_to_file(const dim2f &A, const std::string file_name);
+void write_vector_to_file(const dim1I &v, const std::string file_name);
+dim2I read_matrix(const string filename, const int N);
+double order_parameter(const std::vector<double> &x);
+double order_parameter(const std::vector<double> &x, const dim1I indices);
 
 extern unsigned seed;
 #endif // !LIB_HPP
