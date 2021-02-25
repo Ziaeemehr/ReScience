@@ -5,10 +5,10 @@ CXXFLAGS = -std=c++11 -O2 -lm  -lgsl -lgslcblas -fopenmp
 
 
 prog: main.o lib.o
-	$(CXX)  -o $@  $^ $(CXXFLAGS) -I/usr/include/eigen3
+	$(CXX)  -o $@  $^ $(CXXFLAGS) 
 
 main.o : main.cpp lib.hpp
-	$(CXX) -c main.cpp  $(CXXFLAGS) -I/usr/include/eigen3
+	$(CXX) -c main.cpp  $(CXXFLAGS) 
 
 lib.o: lib.cpp lib.hpp
 	$(CXX) -c lib.cpp $(CXXFLAGS) 

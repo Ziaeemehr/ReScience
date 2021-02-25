@@ -1,22 +1,56 @@
 #include "lib.hpp"
 
+/*------------------------------------------------------------*/
+void ODE::calculate_alpha(const dim1 &x, const size_t n)
+{
+    assert(n > 0);
+    for (size_t i = 0; i < n; i++)
+        alpha[i] = order_parameter(x, adj_list[i]);
+}
+//---------------------------------------------------------------------------//
+void ODE::set_params(
+    int N,
+    double dt,
+    double coupling,
+    dim1 omega,
+    dim2I adj_mat,
+    int num_threads)
+{
+    this->N = N;
+    this->dt = dt;
+    this->omega = omega;
+    this->coupling = coupling;
+    this->num_threads = num_threads;
+    this->adj_list = adjmat_to_adjlist<int>(adj_mat);
+
+    alpha.resize(N);
+    degrees.resize(N);
+
+    for (size_t i = 0; i < N; ++i)
+    {
+        degrees[i] = std::accumulate(adj_list[i].begin(),
+                                     adj_list[i].end(),
+                                     0);
+        alpha[i] = 1.0;
+    }
+
+    omp_set_num_threads(num_threads);
+}
+
+//---------------------------------------------------------------------------//
 dim1 ODE::kuramoto_model(const dim1 &x)
 {
     double sumj = 0.0;
     dim1 dxdt(N);
-// #pragma omp parallel for reduction(+ \
+    // #pragma omp parallel for reduction(+ \
 //                                    : sumj)
     for (int i = 0; i < N; i++)
     {
         sumj = 0.0;
-        for (int j = 0; j < N; ++j)
-        {
-            if (adj_mat[i][j] > 0)
-            {
-                sumj += sin(x[j] - x[i]);
-            }
-        }
-        dxdt[i] = omega[i] + couplings[i] * sumj;
+        for (int j : adj_list[i])
+            sumj += sin(x[j] - x[i]);
+
+        dxdt[i] = omega[i] + coupling * alpha[i] * sumj;
     }
 
     return dxdt;
@@ -81,10 +115,30 @@ double order_parameter(const std::vector<double> &x)
     return r;
 }
 //---------------------------------------------------------------------------//
-double order_parameter(const std::vector<double> &x,
-                       const dim1I indices)
+double order_parameter(const std::vector<double> &x, const size_t n)
 {
+    /* 
+     * Calculate order parameter for first n elements in vector x
+     */
 
+    int N = x.size();
+    assert(n > 1);
+    assert(N > 1);
+    std::complex<double> z(0.0, 0.0);
+
+    for (size_t i = 0; i < n; i++)
+    {
+        std::complex<double> z0(0.0, x[i]);
+        z += std::exp(z0);
+    }
+    z /= (double)n;
+    double r = std::abs(z);
+
+    return r;
+}
+//---------------------------------------------------------------------------//
+double order_parameter(const std::vector<double> &x, const dim1I indices)
+{
     int n = x.size();
     int ni = indices.size();
 
@@ -103,7 +157,6 @@ double order_parameter(const std::vector<double> &x,
 
     return r;
 }
-
 /*------------------------------------------------------------*/
 double get_wall_time()
 {
@@ -238,5 +291,25 @@ dim2f get_correlation(const dim1 &x)
             cor[i][j] = cos(x[j] - x[i]);
 
     return cor;
+}
+/*------------------------------------------------------------*/
+/*!
+ * \brief Return evenly spaced values within a given interval.
+ * \param start Start of interval. The interval includes this value.
+ * \param end End of interval. 
+ * \param step  Spacing between values.
+*/
+dim1 arange(
+    const double start, 
+    const double end,
+    const double step)
+{
+    int nstep = round((end - start) / step) + 1;
+    dim1 arr(nstep);
+
+    for (int i = 0; i < nstep; i++)
+        arr[i] = start + i * step;
+        
+    return arr;
 }
 /*------------------------------------------------------------*/

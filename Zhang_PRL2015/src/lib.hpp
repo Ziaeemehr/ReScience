@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <time.h>
+#include <numeric>
 #include <fstream>
 #include <fstream>
 #include <complex>
@@ -73,9 +74,12 @@ public:
 
 public:
     dim1 omega;
-    dim1 couplings;
-    dim2I adj_mat;
+    // dim2I adj_mat;
     dim2I adj_list;
+    int num_threads;
+    dim1 alpha;
+    dim1I degrees;
+    double coupling;
 
     void set_params(int N,
                     double dt,
@@ -88,6 +92,7 @@ public:
     void euler_integrator(dim1 &);
     dim1 kuramoto_model(const dim1 &x);
     void runge_kutta4_integrator(dim1 &y);
+    void calculate_alpha(const dim1 &x, const size_t n);
 };
 
 double get_wall_time();
@@ -99,6 +104,73 @@ void write_vector_to_file(const dim1I &v, const std::string file_name);
 dim2I read_matrix(const string filename, const int N);
 double order_parameter(const std::vector<double> &x);
 double order_parameter(const std::vector<double> &x, const dim1I indices);
+dim1 arange(const double start, const double end, const double step);
+
+template <typename T>
+std::vector<std::vector<T>> adjmat_to_adjlist(
+    const std::vector<std::vector<T>> &A,
+    const double threshold = 1e-8,
+    std::string in_degree = "row")
+{
+    /*!
+        return adjacency list of given adjacency matrix
+        * \param A  input adjacency matrix
+        * \param threshold  threshold for binarizing 
+        * \param in_degree  "row" or "col" to consider input edges on row or col, respectively
+        * \return adjacency list as a vector of vector
+        * 
+        * 
+        * **example**
+        * adjmat_to_adjlist<int>(A);
+        */
+    int row = A.size();
+    int col = A[0].size();
+    std::vector<std::vector<int>> adjlist;
+
+    if (in_degree == "row")
+    {
+        adjlist.resize(row);
+        for (int i = 0; i < row; i++)
+        {
+            for (int j = 0; j < col; j++)
+            {
+                if (std::abs(A[i][j]) > 1.e-8)
+                    adjlist[i].push_back(j);
+            }
+        }
+    }
+    else
+    {
+        adjlist.resize(col);
+
+        for (int i = 0; i < col; i++)
+        {
+            for (int j = 0; j < row; j++)
+            {
+                if (std::abs(A[i][j]) > 1.e-8)
+                    adjlist[i].push_back(j);
+            }
+        }
+    }
+
+    return adjlist;
+}
+
+template <typename T>
+inline double average(const std::vector<T> &vec,
+                      const int index = 0)
+{
+    /*!
+         * average the vector from element "index" to end of the vector 
+         * 
+         * \param vec input vector
+         * \param index index to drop elements before that
+         * \return [double] average value of input vector
+         */
+    return accumulate(vec.begin() + index,
+                      vec.end(), 0.0) /
+           (vec.size() - index);
+}
 
 extern unsigned seed;
 #endif // !LIB_HPP
