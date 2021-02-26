@@ -1,0 +1,84 @@
+import os
+import igraph
+import numpy as np
+import pylab as plt
+import networkx as nx
+from os import system
+from time import time
+from os.path import join
+from threading import Thread
+from joblib import Parallel, delayed
+from lib import generate_random_graph, display_time
+plt.switch_backend('agg')
+# ---------------------------------------------------------#
+
+
+# preparing the directories------------------------------------------
+directories = ["../data"]
+for d in directories:
+    if not os.path.exists(d):
+        os.makedirs(d)
+# -------------------------------------------------------------------
+
+
+def run_command(arg):
+    command = "{0} {1} {2} {3} {4} {5} {6} \
+    {7} {8} {9} {10}".format(*arg)
+    system("./prog " + command)
+# ---------------------------------------------------------#
+
+
+def batch_run():
+    arg = []
+    for label in network_labels:
+        arg.append([N,
+                    dt,
+                    t_transition,
+                    t_simulation,
+                    gi,
+                    gf,
+                    dg,
+                    fraction,
+                    num_threads,
+                    label,
+                    RANDOMNESS,
+                    ])
+
+    Parallel(n_jobs=n_jobs)(
+        map(delayed(run_command), arg))
+
+
+network_labels = ["A"]
+data_path = "../data/"
+
+if __name__ == "__main__":
+
+    N = 50
+    graph_p0 = [0.2]
+    graph_p1 = [0.2]
+
+    t_transition = 50.
+    t_simulation = 50.
+    dt = 0.02
+    gi, gf, dg = 0, 0.5, 0.02
+    fraction = 1.
+    RANDOMNESS = 0
+    num_threads = 4
+    n_jobs = 1
+    seed = 1
+
+    for i in range(len(network_labels)):
+        generate_random_graph(N, graph_p0[i],
+                              seed=seed,
+                              verbocity=False,
+                              file_name=join(data_path,
+                                             network_labels[i]+"0"))
+        generate_random_graph(N, graph_p1[i],
+                              seed=seed+1,
+                              verbocity=False,
+                              file_name=join(data_path,
+                                             network_labels[i]+"1"))
+
+    start = time()
+    batch_run()
+    display_time(time()-start)
