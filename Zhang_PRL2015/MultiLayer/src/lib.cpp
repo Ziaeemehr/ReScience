@@ -53,27 +53,26 @@ void ODE::set_params(int N,
 //---------------------------------------------------------------------------//
 dim1 ODE::kuramoto_model(const dim1 &x)
 {
-    double sumj = 0.0;
     dim1 dxdt(2 * N);
-    // #pragma omp parallel for reduction(+ \
-//                                    : sumj)
+    #pragma omp parallel
+    #pragma omp for 
     for (int i = 0; i < N; ++i)
     {
-        sumj = 0.0;
+        double sum0 = 0.0;
         for (int j : adj_list0[i])
-            sumj += sin(x[j] - x[i]);
+            sum0 += sin(x[j] - x[i]);
 
-        dxdt[i] = omega0[i] + coupling * alpha0[i] * sumj;
+        dxdt[i] = omega0[i] + coupling * alpha1[i] * sum0;
     }
-    // #pragma omp parallel for reduction(+ \
-//                                    : sumj)
+    #pragma omp barrier
+    #pragma omp for
     for (int i = 0; i < N; ++i)
     {
-        sumj = 0.0;
+        double sum1 = 0.0;
         for (int j : adj_list1[i])
-            sumj += sin(x[j + N] - x[i + N]);
+            sum1 += sin(x[j + N] - x[i + N]);
 
-        dxdt[i + N] = omega1[i] + coupling * alpha1[i] * sumj;
+        dxdt[i + N] = omega1[i] + coupling * alpha0[i] * sum1;
     }
 
     return dxdt;

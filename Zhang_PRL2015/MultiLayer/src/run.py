@@ -53,12 +53,12 @@ data_path = "../data/"
 
 if __name__ == "__main__":
 
-    N = 50
-    graph_p0 = [0.2]
-    graph_p1 = [0.2]
+    N = 100
+    graph_p0 = [0.12]
+    graph_p1 = [0.12]
 
-    t_transition = 50.
-    t_simulation = 50.
+    t_transition = 500.
+    t_simulation = 500.
     dt = 0.02
     gi, gf, dg = 0, 0.5, 0.02
     fraction = 1.
