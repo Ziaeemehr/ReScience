@@ -17,10 +17,8 @@ lib.o: lib.cpp lib.hpp
 .PHONEY: clean
 clean:
 	rm -rf  *.pyc 
-	rm -rf ../data/*.txt 
 	rm -rf ../data/text/*
-	rm -rf ../data/fig/* 
-	rm -rf ../data/npz/*
+	rm -rf ../data/fig/*
 	rm -f *.png *.out  
 
 .PHONEY: eradicate

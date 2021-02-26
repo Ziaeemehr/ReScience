@@ -88,7 +88,7 @@ void ODE::runge_kutta4_integrator(dim1 &y)
 //---------------------------------------------------------------------------//
 void ODE::euler_integrator(dim1 &y)
 {
-    dim1 f(N);
+    dim1 f(y.size());
     f = kuramoto_model(y);
     for (int i = 0; i < y.size(); i++)
     {
@@ -102,28 +102,6 @@ double order_parameter(const std::vector<double> &x)
     int n = x.size();
     assert(n > 1);
 
-    std::complex<double> z(0.0, 0.0);
-
-    for (size_t i = 0; i < n; i++)
-    {
-        std::complex<double> z0(0.0, x[i]);
-        z += std::exp(z0);
-    }
-    z /= (double)n;
-    double r = std::abs(z);
-
-    return r;
-}
-//---------------------------------------------------------------------------//
-double order_parameter(const std::vector<double> &x, const size_t n)
-{
-    /* 
-     * Calculate order parameter for first n elements in vector x
-     */
-
-    int N = x.size();
-    assert(n > 1);
-    assert(N > 1);
     std::complex<double> z(0.0, 0.0);
 
     for (size_t i = 0; i < n; i++)
@@ -236,30 +214,6 @@ vector<vector<int>> read_matrix(string filename, int Node)
         std::cerr << "\n file : " << filename << " not found \n";
         exit(2);
     }
-}
-/*------------------------------------------------------------*/
-void write_matrix_to_file(const vector<vector<int>> &A,
-                          const string file_name)
-{
-    int row = A.size();
-    int col = A[0].size();
-
-    std::ofstream ofile;
-    ofile.open(file_name);
-    if (ofile.is_open())
-    {
-        for (int i = 0; i < row; i++)
-        {
-            for (int j = 0; j < col; j++)
-            {
-                ofile << A[i][j] << " ";
-            }
-            ofile << "\n";
-        }
-        ofile.close();
-    }
-    else
-        std::cout << "Error opening file to write data. \n";
 }
 /*------------------------------------------------------------*/
 void write_vector_to_file(const vector<double> &v,

@@ -98,9 +98,7 @@ public:
 double get_wall_time();
 double get_cpu_time();
 void display_timing(double wtime, double cptime);
-void write_matrix_to_file(const dim2I &A, const std::string file_name);
-void write_matrix_to_file(const dim2f &A, const std::string file_name);
-void write_vector_to_file(const dim1I &v, const std::string file_name);
+void write_vector_to_file(const dim1 &v, const std::string file_name);
 dim2I read_matrix(const string filename, const int N);
 double order_parameter(const std::vector<double> &x);
 double order_parameter(const std::vector<double> &x, const dim1I indices);
@@ -170,6 +168,38 @@ inline double average(const std::vector<T> &vec,
     return accumulate(vec.begin() + index,
                       vec.end(), 0.0) /
            (vec.size() - index);
+}
+
+template <typename T>
+void write_matrix_to_file(const std::vector<std::vector<T>> &A,
+                          const std::string filename)
+{
+    /*! 
+        * Write matrix to text file
+        
+        * \param A input vector of vector of type T.
+        * \param filename output text file name.
+        * 
+        */
+    int row = A.size();
+    int col = A[0].size();
+
+    std::ofstream ofile;
+    ofile.open(filename);
+    if (ofile.is_open())
+    {
+        for (int i = 0; i < row; i++)
+        {
+            for (int j = 0; j < col; j++)
+            {
+                ofile << A[i][j] << " ";
+            }
+            ofile << "\n";
+        }
+        ofile.close();
+    }
+    else
+        std::cout << "Error opening file to write data. \n";
 }
 
 extern unsigned seed;
