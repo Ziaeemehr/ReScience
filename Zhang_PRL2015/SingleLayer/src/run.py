@@ -1,6 +1,7 @@
 import os
 import igraph
 import numpy as np
+import pylab as plt
 import networkx as nx
 from os import system
 from time import time
@@ -8,7 +9,6 @@ from os.path import join
 from threading import Thread
 from joblib import Parallel, delayed
 from lib import generate_random_graph, display_time
-import pylab as plt
 plt.switch_backend('agg')
 # ---------------------------------------------------------#
 

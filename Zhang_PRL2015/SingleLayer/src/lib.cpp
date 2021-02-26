@@ -6,8 +6,6 @@ void ODE::calculate_alpha(const dim1 &x, const size_t n)
     assert(n > 0);
     for (size_t i = 0; i < n; i++)
         alpha[i] = order_parameter(x, adj_list[i]);
-    // for (auto i:alpha)
-    // cout << i <<" ";
 }
 //---------------------------------------------------------------------------//
 void ODE::set_params(
