@@ -276,8 +276,9 @@ if __name__ == "__main__":
 
     g = Symbol("g")
 
-    # figure_r()
-    # figure_R()
-    H_loop()
+    figure_r()
+    figure_R()
+    # system("rm -rf data/*.so")
+    # H_loop()
 
     # plot_H_loop("data/data.npz", marker="o")
