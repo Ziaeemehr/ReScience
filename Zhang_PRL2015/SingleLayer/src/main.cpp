@@ -108,8 +108,7 @@ int main(int argc, char *argv[])
                     if (PRINT_SNAPSHOT && (it != 0) && counter < snapshot.size() && ((it % snapshot[counter]) == 0) && (di == 0))
                     {
                         string file_name = PATH + adj_label + "-" +
-                                           to_string(coupling) + "-" +
-                                           to_string(it) + ".txt";
+                                           to_string(coupling) + ".txt";
                         write_vector_to_file(sol.alpha, file_name);
                         // printf("snapshot at %d\n", snapshot[counter]);
                         counter++;

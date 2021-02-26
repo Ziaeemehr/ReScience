@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     const int num_threads = atoi(argv[9]);
     const string adj_label = argv[10];
     const int RANDOMNESS = atoi(argv[11]);
+    const bool PRINT_SNAPSHOT = atoi(argv[12]);
     const size_t num_f = round(fraction * N);
 
     double coupling;
@@ -31,19 +32,23 @@ int main(int argc, char *argv[])
     constexpr double omega_1_min = -1.0;
     constexpr double omega_1_max = 1.0;
 
-
     const string OMEGA_DIST = "uniform";
     vector<string> direction = {"forward", "backward"};
     long unsigned num_transition_steps = (int)(round)(t_transition / dt);
     long unsigned num_simulation_steps = (int)(round)(t_simulation / dt);
 
+    dim1I snapshot{
+        int(0.5 * num_simulation_steps),
+        int(0.95 * num_simulation_steps)}; // record phase and alpha at these fractions of the simulation time
+
     double wtime = get_wall_time(); //timing
 
-    string PATH = "../data/";
+    string PATH = "../data/text/";
     string ADJ_FILE_NAME0 = PATH + adj_label + "0.txt";
     string ADJ_FILE_NAME1 = PATH + adj_label + "1.txt";
     string FW_FILE_NAME = PATH + "FW-" + adj_label + ".txt";
     string BW_FILE_NAME = PATH + "BW-" + adj_label + ".txt";
+    string OMEGA_FILE_NAME = PATH + "omega" + adj_label + ".txt";
 
     FILE *FW_FILE = fopen(FW_FILE_NAME.c_str(), "w");
     FILE *BW_FILE = fopen(BW_FILE_NAME.c_str(), "w");
@@ -74,6 +79,7 @@ int main(int argc, char *argv[])
             omega_0[i] = RANDOM * std::abs(omega_0_max - omega_0_min) - std::abs(omega_0_min);
             omega_1[i] = RANDOM * std::abs(omega_1_max - omega_1_min) - std::abs(omega_1_min);
         }
+    write_vector_to_file(omega_0, OMEGA_FILE_NAME);
 
     // std::sort(omega_0.begin(), omega_0.end());
     for (size_t di = 0; di < direction.size(); ++di)
@@ -105,7 +111,7 @@ int main(int argc, char *argv[])
                 sol.runge_kutta4_integrator(initial_phases);
                 sol.calculate_alpha(initial_phases, num_f);
             }
-
+            size_t counter = 0;
             for (long unsigned it = 0; it < num_simulation_steps; ++it)
             {
                 sol.runge_kutta4_integrator(initial_phases);
@@ -115,13 +121,21 @@ int main(int argc, char *argv[])
                     R1.push_back(order_parameter(initial_phases, N)); // order parametr of layer1
                     sol.calculate_alpha(initial_phases, num_f);
                 }
+                if (PRINT_SNAPSHOT && (it != 0) && counter < snapshot.size() && ((it % snapshot[counter]) == 0) && (di == 0))
+                {
+                    string file_name = PATH + adj_label + "-" +
+                                       to_string(coupling) + ".txt";
+                    write_vector_to_file(sol.alpha0, file_name);
+                    // printf("snapshot at %d\n", snapshot[counter]);
+                    counter++;
+                }
             }
 
             if (di == 0)
                 fprintf(FW_FILE,
                         "%18.6f %18.6f %18.6f \n",
                         coupling,
-                        average<double>(R0), 
+                        average<double>(R0),
                         average<double>(R1));
             else
                 fprintf(BW_FILE,
@@ -140,4 +154,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-

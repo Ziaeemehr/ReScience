@@ -54,8 +54,8 @@ void ODE::set_params(int N,
 dim1 ODE::kuramoto_model(const dim1 &x)
 {
     dim1 dxdt(2 * N);
-    #pragma omp parallel
-    #pragma omp for 
+#pragma omp parallel
+#pragma omp for
     for (int i = 0; i < N; ++i)
     {
         double sum0 = 0.0;
@@ -64,8 +64,8 @@ dim1 ODE::kuramoto_model(const dim1 &x)
 
         dxdt[i] = omega0[i] + coupling * alpha1[i] * sum0;
     }
-    #pragma omp barrier
-    #pragma omp for
+#pragma omp barrier
+#pragma omp for
     for (int i = 0; i < N; ++i)
     {
         double sum1 = 0.0;
@@ -266,23 +266,38 @@ void write_matrix_to_file(const vector<vector<int>> &A,
         std::cout << "Error opening file to write data. \n";
 }
 /*------------------------------------------------------------*/
+// void write_vector_to_file(const vector<double> &v,
+//                           const std::string file_name)
+// {
+//     size_t n = v.size();
+//     std::ofstream ofile;
+//     ofile.open(file_name);
+//     if (ofile.is_open())
+//     {
+//         for (size_t i = 0; i < n; ++i)
+//             ofile << v[i] << "\n";
+//         ofile.close();
+//     }
+//     else
+//         std::cout << "Error opening file to write data. \n";
+// }
+/*------------------------------------------------------------*/
 void write_vector_to_file(const vector<double> &v,
                           const std::string file_name)
 {
     size_t n = v.size();
-    std::ofstream ofile;
-    ofile.open(file_name);
-    if (ofile.is_open())
+    FILE *FILE = fopen(file_name.c_str(), "a");
+    if (fileExists(file_name))
     {
         for (size_t i = 0; i < n; ++i)
-            ofile << v[i] << "\n";
-        ofile.close();
+            fprintf(FILE, "%18.6f ", v[i]);
+        fprintf(FILE, "\n");
+        fclose(FILE);
     }
     else
         std::cout << "Error opening file to write data. \n";
 }
 /*------------------------------------------------------------*/
-
 dim2f get_correlation(const dim1 &x)
 {
     /* Calculate Kuramoto correlation*/

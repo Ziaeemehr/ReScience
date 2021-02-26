@@ -216,23 +216,38 @@ vector<vector<int>> read_matrix(string filename, int Node)
     }
 }
 /*------------------------------------------------------------*/
+// void write_vector_to_file(const vector<double> &v,
+//                           const std::string file_name)
+// {
+//     size_t n = v.size();
+//     std::ofstream ofile;
+//     ofile.open(file_name);
+//     if (ofile.is_open())
+//     {
+//         for (size_t i = 0; i < n; ++i)
+//             ofile << v[i] << "\n";
+//         ofile.close();
+//     }
+//     else
+//         std::cout << "Error opening file to write data. \n";
+// }
+/*------------------------------------------------------------*/
 void write_vector_to_file(const vector<double> &v,
                           const std::string file_name)
 {
     size_t n = v.size();
-    std::ofstream ofile;
-    ofile.open(file_name);
-    if (ofile.is_open())
+    FILE *FILE = fopen(file_name.c_str(), "a");
+    if (fileExists(file_name))
     {
         for (size_t i = 0; i < n; ++i)
-            ofile << v[i] << "\n";
-        ofile.close();
+            fprintf(FILE, "%18.6f ", v[i]);
+        fprintf(FILE, "\n");
+        fclose(FILE);
     }
     else
         std::cout << "Error opening file to write data. \n";
 }
 /*------------------------------------------------------------*/
-
 dim2f get_correlation(const dim1 &x)
 {
     /* Calculate Kuramoto correlation*/

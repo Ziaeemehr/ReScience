@@ -106,7 +106,7 @@ double get_cpu_time();
 void display_timing(double wtime, double cptime);
 void write_matrix_to_file(const dim2I &A, const std::string file_name);
 void write_matrix_to_file(const dim2f &A, const std::string file_name);
-void write_vector_to_file(const dim1I &v, const std::string file_name);
+void write_vector_to_file(const dim1 &v, const std::string file_name);
 dim2I read_matrix(const string filename, const int N);
 double order_parameter(const std::vector<double> &x, const size_t);
 double order_parameter(const std::vector<double> &x, const dim1I indices, const size_t);
