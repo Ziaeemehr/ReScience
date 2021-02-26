@@ -27,6 +27,7 @@ clean:
 eradicate: clean
 	rm -rf *.o  prog 
 	# rm -rf .vscode
+	rm -rf __pycache__/
 	rm -rf out.txt
 
 .PHONY: clean, eradicate

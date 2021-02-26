@@ -6,6 +6,8 @@ void ODE::calculate_alpha(const dim1 &x, const size_t n)
     assert(n > 0);
     for (size_t i = 0; i < n; i++)
         alpha[i] = order_parameter(x, adj_list[i]);
+    // for (auto i:alpha)
+    // cout << i <<" ";
 }
 //---------------------------------------------------------------------------//
 void ODE::set_params(
@@ -42,8 +44,8 @@ dim1 ODE::kuramoto_model(const dim1 &x)
 {
     double sumj = 0.0;
     dim1 dxdt(N);
-    // #pragma omp parallel for reduction(+ \
-//                                    : sumj)
+#pragma omp parallel for reduction(+ \
+                                   : sumj)
     for (int i = 0; i < N; i++)
     {
         sumj = 0.0;
@@ -300,7 +302,7 @@ dim2f get_correlation(const dim1 &x)
  * \param step  Spacing between values.
 */
 dim1 arange(
-    const double start, 
+    const double start,
     const double end,
     const double step)
 {
@@ -309,7 +311,7 @@ dim1 arange(
 
     for (int i = 0; i < nstep; i++)
         arr[i] = start + i * step;
-        
+
     return arr;
 }
 /*------------------------------------------------------------*/

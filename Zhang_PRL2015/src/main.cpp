@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     const size_t num_f = round(fraction * N);
 
     double coupling;
-    constexpr int step_r = 10;
+    constexpr int step_r = 5;
     constexpr double omega_0_min = -1.0;
     constexpr double omega_0_max = 1.0;
     const string OMEGA_DIST = "uniform";
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 
     double wtime = get_wall_time(); //timing
 
-    string PATH = "../data/text/";
+    string PATH = "../data/";
     string ADJ_FILE_NAME = PATH + adj_label + ".txt";
     string FW_FILE_NAME = PATH + "FW-" + adj_label + ".txt";
     string BW_FILE_NAME = PATH + "BW-" + adj_label + ".txt";
@@ -74,13 +74,18 @@ int main(int argc, char *argv[])
             else //! backward
                 coupling = G[G.size() - i - 1];
 
+            printf("%s, g = %10.3f\n",direction[di].c_str(), coupling);
+
             ODE sol;
             sol.set_params(N, dt, coupling, omega_0,
                            adj, num_threads);
             dim1 R;
             R.reserve(int(num_simulation_steps / step_r));
             for (long unsigned it = 0; it < num_transition_steps; ++it)
+            {
                 sol.runge_kutta4_integrator(initial_phases);
+                sol.calculate_alpha(initial_phases, num_f);
+            }
 
             for (long unsigned it = 0; it < num_simulation_steps; ++it)
             {
